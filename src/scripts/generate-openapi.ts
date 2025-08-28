@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { writeFileSync } from 'fs';
-import { AppModule } from 'src/app.module';
-import { swaggerConfig } from 'src/swagger.config';
+import { AppModule } from '../app.module';
+import { swaggerConfig } from '../swagger.config';
 
 async function generateOpenApi() {
   const app = await NestFactory.create(AppModule);
