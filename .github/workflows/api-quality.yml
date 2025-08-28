@@ -1,0 +1,37 @@
+name: API Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  openapi-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # 1) Generate the spec JSON(s)
+      - name: Generate OpenAPI
+        run: npm run generate:openapi
+
+      # 2) Lint the spec using .spectral.yaml
+      - name: Lint OpenAPI with Spectral
+        run: npx @stoplight/spectral-cli lint docs/api/openapi.latest.json
+
+      # Optional: upload the spec so teammates can download from the run
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: docs/api/openapi*.json

@@ -1,0 +1,113 @@
+extends: ["spectral:oas"]
+
+rules:
+  # --- Paths & naming ---
+  path-kebab-case:
+    description: "Paths must be kebab-case; params allowed like {gymId}"
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\\/(?:[-a-z0-9]+|\\{[A-Za-z0-9]+\\})(?:\\/(?:[-a-z0-9]+|\\{[A-Za-z0-9]+\\}))*$"
+
+  version-prefix-v1:
+    description: "All paths must start with /v1"
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\\/v1\\/(?:.*)?$"
+
+  # --- IDs must be UUID v4 and not integers ---
+  id-must-be-uuid:
+    description: "Properties ending with 'Id' or 'id' must be string uuid"
+    given: "$..properties[?(@key.match(/id$/i))]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          properties:
+            type:
+              const: string
+            format:
+              const: uuid
+          required: [type, format]
+
+  no-integer-ids:
+    description: "Do not expose integer IDs"
+    given: "$..properties[?(@key.match(/id$/i))]"
+    then:
+      field: type
+      function: falsy
+      functionOptions:
+        truthy: ["integer", "number"]
+
+  # --- Timestamps ---
+  timestamp-format:
+    description: "createdAt/updatedAt must be RFC3339 date-time"
+    given: "$..properties[?(@key.match(/.*At$/))]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          properties:
+            type:
+              const: string
+            format:
+              const: date-time
+          required: [type, format]
+
+  # --- Error envelope must exist ---
+  error-envelope:
+    description: "Components must define shared Error schema with error+requestId"
+    given: "$.components.schemas"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["Error"]
+          properties:
+            Error:
+              type: object
+              properties:
+                type: object
+              required: []
+
+  # --- Pagination envelope ---
+  pagination-shape:
+    description: "Shared Paginated schema must include data[] and meta.nextCursor"
+    given: "$.components.schemas.Paginated"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["data", "meta"]
+          properties:
+            data:
+              type: array
+            meta:
+              type: object
+              required: ["nextCursor"]
+
+  # --- Auth scheme ---
+  bearer-auth-defined:
+    description: "Bearer JWT auth scheme must be defined"
+    given: "$.components.securitySchemes"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          properties:
+            BearerAuth:
+              type: object
+              properties:
+                type: { const: http }
+                scheme: { const: bearer }
+                bearerFormat: { const: JWT }
+              required: ["type", "scheme", "bearerFormat"]
+          required: ["BearerAuth"]
